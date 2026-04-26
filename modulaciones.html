@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modulador Digital Interactivo</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="input-group">
+        <div class="input-wrapper">
+            <input type="text" id="textoInput" value="HOLA" placeholder="Escribe una palabra...">
+        </div>
+        <button onclick="procesarTexto()">Convertir</button>
+    </div>
+
+    <div class="mod-selector">
+        <span class="titulo">Mostrar:</span>
+        <label><input type="checkbox" id="chk-base" onchange="dibujarGraficas()" checked> Señal Base</label>
+        <label><input type="checkbox" id="chk-ask" onchange="dibujarGraficas()" checked> ASK</label>
+        <label><input type="checkbox" id="chk-fsk" onchange="dibujarGraficas()" checked> FSK</label>
+        <label><input type="checkbox" id="chk-psk" onchange="dibujarGraficas()" checked> BPSK</label>
+        <label><input type="checkbox" id="chk-qam" onchange="dibujarGraficas()" checked> 4-QAM</label>
+    </div>
+
+    <div id="info-binaria"></div>
+    
+    <div id="placeholder">
+        Escribe una palabra y presiona "CONVERTIR" para visualizar.
+    </div>
+
+    <div id="graficas"></div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
