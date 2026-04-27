@@ -1,166 +1,135 @@
-// script.js
-let datosCalculados = null;
-
-function procesarTexto() {
-    const textoOriginal = document.getElementById("textoInput").value;
-    const texto = textoOriginal.toUpperCase();
-    if (!texto) return;
-
-    // Mostramos contenedores de forma instantánea
-    document.getElementById("placeholder").style.display = 'none';
-    const infoBinariaDiv = document.getElementById("info-binaria");
-    infoBinariaDiv.style.display = 'flex';
-    infoBinariaDiv.innerHTML = '';
-    
-    let bits = [];
-    
-    // Extracción de bits y visualización inmediata en pantalla
-    for (let i = 0; i < texto.length; i++) {
-        let char = texto[i];
-        let bin = texto.charCodeAt(i).toString(2).padStart(8, '0');
-        
-        let block = document.createElement('div');
-        block.className = 'char-block';
-        let label = document.createElement('span'); 
-        label.className = 'char-label'; 
-        label.innerText = char;
-        let binarySpan = document.createElement('span'); 
-        binarySpan.className = 'char-binary'; 
-        binarySpan.innerText = bin;
-        
-        block.appendChild(label); 
-        block.appendChild(binarySpan);
-        infoBinariaDiv.appendChild(block);
-
-        // Guardamos los bits para las matemáticas
-        for (let b of bin) bits.push(parseInt(b));
-    }
-
-    // --- Lógica matemática de las señales ---
-    const n_bits = bits.length;
-    const Tb = 1.0, fc = 2.0, fc0 = 1.0, fc1 = 3.0, fs = 150;     
-    const num_muestras = n_bits * Tb * fs;
-
-    let t = new Float64Array(num_muestras);
-    let s_digital = new Float64Array(num_muestras);
-    let s_ask = new Float64Array(num_muestras);
-    let s_fsk = new Float64Array(num_muestras);
-    let s_psk = new Float64Array(num_muestras);
-    let s_qam = new Float64Array(num_muestras);
-
-    const mapeo_I = { '00': -1, '01': -1, '10': 1, '11': 1 };
-    const mapeo_Q = { '00': -1, '01': 1,  '10': -1, '11': 1 };
-
-    for (let i = 0; i < n_bits; i++) {
-        const bit = bits[i];
-        let I = 0, Q = 0;
-        if (i % 2 === 0) {
-            const b1 = bits[i], b2 = (i + 1 < n_bits) ? bits[i + 1] : 0;
-            I = mapeo_I["" + b1 + b2]; Q = mapeo_Q["" + b1 + b2];
-        } else {
-            const b1 = bits[i - 1], b2 = bits[i];
-            I = mapeo_I["" + b1 + b2]; Q = mapeo_Q["" + b1 + b2];
-        }
-
-        for (let j = 0; j < fs; j++) {
-            let idx = i * fs + j;
-            let tiempo = idx * (1 / fs);
-            t[idx] = tiempo;
-            s_digital[idx] = bit;
-            let portadora = Math.sin(2 * Math.PI * fc * tiempo);
-            s_ask[idx] = bit * portadora;
-            s_fsk[idx] = Math.sin(2 * Math.PI * ((bit === 1) ? fc1 : fc0) * tiempo);
-            s_psk[idx] = ((bit === 1) ? 1 : -1) * portadora;
-            s_qam[idx] = I * Math.cos(2 * Math.PI * fc * tiempo) - Q * Math.sin(2 * Math.PI * fc * tiempo);
-        }
-    }
-
-    datosCalculados = { t, s_digital, s_ask, s_fsk, s_psk, s_qam };
-    dibujarGraficas();
+function textToBinary(text) {
+    return text.split('').map(char => {
+        return char.charCodeAt(0).toString(2).padStart(8, '0');
+    }).join('');
 }
 
-function dibujarGraficas() {
-    if (!datosCalculados) return;
+function process() {
+    const text = document.getElementById('inputText').value;
+    const binary = textToBinary(text);
+    
+    const outputText = binary ? binary.match(/.{1,8}/g).join(' ') : "Esperando entrada...";
+    document.getElementById('binaryOutput').innerText = "Binario: " + outputText;
+    
+    const container = document.getElementById('chartsContainer');
+    container.innerHTML = ''; 
 
-    const graficasDiv = document.getElementById("graficas");
-    const selecciones = [];
+    const checkboxes = document.querySelectorAll('#codeTypes input[type="checkbox"]:checked');
 
-    // Selección dinámica de colores y ondas a mostrar
-    if (document.getElementById("chk-base").checked) selecciones.push({name: 'Base', data: datosCalculados.s_digital, color: '#f85149', isDigital: true}); 
-    if (document.getElementById("chk-ask").checked) selecciones.push({name: 'ASK', data: datosCalculados.s_ask, color: '#58a6ff', isDigital: false}); 
-    if (document.getElementById("chk-fsk").checked) selecciones.push({name: 'FSK', data: datosCalculados.s_fsk, color: '#3fb950', isDigital: false}); 
-    if (document.getElementById("chk-psk").checked) selecciones.push({name: 'BPSK', data: datosCalculados.s_psk, color: '#bc8cff', isDigital: false}); 
-    if (document.getElementById("chk-qam").checked) selecciones.push({name: '4-QAM', data: datosCalculados.s_qam, color: '#d29922', isDigital: false}); 
+    if (binary && checkboxes.length > 0) {
+        checkboxes.forEach(checkbox => {
+            const type = checkbox.value;
+            // Aquí obtenemos el texto del botón visual (la etiqueta <label> que le sigue al input)
+            const titleText = checkbox.nextElementSibling.innerText; 
 
-    if (selecciones.length === 0) {
-        graficasDiv.style.display = 'none';
-        return;
-    }
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chart-wrapper';
 
-    graficasDiv.style.display = 'block';
+            const title = document.createElement('h3');
+            title.innerText = titleText;
+            wrapper.appendChild(title);
 
-    let traces = [];
-    let layoutAxes = {};
-    const totalTraces = selecciones.length;
-    let axisIndex = 1;
+            const canvas = document.createElement('canvas');
+            canvas.width = 1000;
+            canvas.height = 180; 
+            wrapper.appendChild(canvas);
 
-    selecciones.forEach(sel => {
-        let axName = axisIndex === 1 ? '' : axisIndex;
-        let xaxisName = 'x' + axName;
-        let yaxisName = 'y' + axName;
+            container.appendChild(wrapper);
 
-        traces.push({
-            x: datosCalculados.t, 
-            y: sel.data, 
-            type: 'scatter', 
-            mode: 'lines',
-            line: { color: sel.color, shape: sel.isDigital ? 'hv' : 'linear', width: 1.8 },
-            xaxis: xaxisName, 
-            yaxis: yaxisName, 
-            name: sel.name
+            drawSignal(canvas, binary, type);
         });
-        
-        // Configuración individual de cada Eje Y
-        layoutAxes['yaxis' + axName] = {
-            title: { text: sel.name, font: { color: '#8b949e' } },
-            gridcolor: '#21262d', 
-            zerolinecolor: '#30363d',
-            range: sel.isDigital ? [-0.5, 1.5] : [-1.5, 1.5],
-            tickfont: { color: '#484f58' }
-        };
+    }
+}
 
-        // Configuración individual de cada Eje X
-        layoutAxes['xaxis' + axName] = {
-            matches: 'x', 
-            gridcolor: '#21262d', 
-            zerolinecolor: '#30363d',
-            tickfont: { color: '#484f58' },
-            showticklabels: axisIndex === totalTraces // Solo muestra los números del eje X en la gráfica de hasta abajo
-        };
-        
-        axisIndex++;
-    });
+function drawSignal(canvas, bits, type) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const midY = h / 2; 
+    
+    const stepX = w / Math.max(bits.length, 16); 
+    const amplitude = 50; 
 
-    const alturaTotal = Math.max(350, selecciones.length * 180);
+    ctx.clearRect(0, 0, w, h);
+    
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let i = 0; i <= w; i += stepX) { 
+        ctx.moveTo(i, 0); 
+        ctx.lineTo(i, h); 
+    }
+    ctx.stroke();
 
-    const layout = {
-        height: alturaTotal, 
-        margin: { t: 30, b: 40, l: 60, r: 30 }, 
-        showlegend: false,
-        hovermode: 'x unified',
-        paper_bgcolor: 'rgba(0,0,0,0)', 
-        plot_bgcolor: 'rgba(0,0,0,0)',  
-        font: { color: '#8b949e' },
-        // Sistema grid de Plotly para asegurar filas limpias sin traslapos
-        grid: {
-            rows: totalTraces,
-            columns: 1,
-            pattern: 'independent',
-            roworder: 'top to bottom'
-        },
-        hoverlabel: { bgcolor: '#161b22', bordercolor: '#30363d', font: {color: '#e6edf3'} },
-        ...layoutAxes 
-    };
+    ctx.strokeStyle = "#e74c3c"; 
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
 
-    Plotly.newPlot('graficas', traces, layout, { responsive: true });
+    ctx.strokeStyle = "#2980b9"; 
+    ctx.lineWidth = 3;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+
+    let currentLevel = 1; 
+    let lastAmiPolarity = 1; 
+    let x = 0;
+    
+    for (let i = 0; i < bits.length; i++) {
+        let bit = parseInt(bits[i]);
+        let yValues = [];
+
+        switch (type) {
+            case 'nrz': yValues = [bit === 1 ? midY - amplitude : midY]; break;
+            case 'nrzl': yValues = [bit === 0 ? midY - amplitude : midY + amplitude]; break;
+            case 'nrzi': 
+                if (bit === 1) currentLevel *= -1;
+                yValues = [midY + (currentLevel * amplitude)]; 
+                break;
+            case 'manchester': 
+                yValues = bit === 1 ? [midY - amplitude, midY + amplitude] : [midY + amplitude, midY - amplitude]; 
+                break;
+            case 'manchesterDiff': 
+                if (bit === 1) currentLevel *= -1;
+                yValues = [midY + (currentLevel * amplitude), midY + (currentLevel * -1 * amplitude)];
+                currentLevel *= -1; 
+                break;
+            case 'ami': 
+                if (bit === 1) {
+                    yValues = [midY - (lastAmiPolarity * amplitude)];
+                    lastAmiPolarity *= -1;
+                } else { yValues = [midY]; }
+                break;
+            case 'pseudo': 
+                if (bit === 0) {
+                    yValues = [midY - (lastAmiPolarity * amplitude)];
+                    lastAmiPolarity *= -1;
+                } else { yValues = [midY]; }
+                break;
+        }
+
+        yValues.forEach((targetY, index) => {
+            let segmentW = stepX / yValues.length;
+            if (i === 0 && index === 0) { ctx.moveTo(x, targetY); } 
+            else { ctx.lineTo(x, targetY); }
+            ctx.lineTo(x + segmentW, targetY); 
+            x += segmentW;
+        });
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = "#333";
+    ctx.font = "bold 14px monospace";
+    ctx.textAlign = "center";
+    
+    let labelX = 0;
+    for (let i = 0; i < bits.length; i++) {
+        let bitText = bits[i];
+        let labelY = midY - amplitude - 8; 
+        ctx.fillText(bitText, labelX + (stepX / 2), labelY);
+        labelX += stepX;
+    }
 }

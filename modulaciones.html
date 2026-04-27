@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertidor a Binario y Códigos de Línea</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Codificador de Línea</h1>
+    
+    <div class="input-group">
+        <label class="main-label" for="inputText">Texto a convertir:</label>
+        <input type="text" id="inputText" placeholder="Escribe algo aquí" oninput="process()">
+    </div>
+
+    <div class="input-group">
+        <label class="main-label">Selecciona los Códigos de Línea</label>
+        
+        <div class="button-group" id="codeTypes">
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="nrz" value="nrz" onchange="process()" checked>
+                <label class="toggle-btn" for="nrz">NRZ</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="nrzl" value="nrzl" onchange="process()">
+                <label class="toggle-btn" for="nrzl">NRZ-L</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="nrzi" value="nrzi" onchange="process()">
+                <label class="toggle-btn" for="nrzi">NRZ-I</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="manchester" value="manchester" onchange="process()">
+                <label class="toggle-btn" for="manchester">Manchester</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="manchesterDiff" value="manchesterDiff" onchange="process()">
+                <label class="toggle-btn" for="manchesterDiff">Manchester Dif.</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="ami" value="ami" onchange="process()">
+                <label class="toggle-btn" for="ami">Bipolar AMI</label>
+            </div>
+            
+            <div class="toggle-wrapper">
+                <input type="checkbox" id="pseudo" value="pseudo" onchange="process()">
+                <label class="toggle-btn" for="pseudo">Pseudoternario</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-box" id="binaryOutput">Binario:</div>
+    
+    <div id="chartsContainer"></div>
+    
+    <div class="legend">
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
